@@ -1,15 +1,4 @@
-import { useState } from "react";
-
-const patientsData = [
-    { id: 1, name: "John Doe", age: 45 },
-    { id: 2, name: "Jane Smith", age: 38 },
-    { id: 3, name: "Michael Johnson", age: 50 },
-    { id: 4, name: "Emily Davis", age: 29 },
-    { id: 5, name: "Robert Brown", age: 60 },
-    { id: 6, name: "Sarah Wilson", age: 34 },
-    { id: 7, name: "David Martinez", age: 42 },
-    { id: 8, name: "Laura Anderson", age: 39 }
-];
+import { useState, useEffect } from "react";
 
 export default function DoctorDashboard() {
     const [selectedPatient, setSelectedPatient] = useState(null);
@@ -17,6 +6,29 @@ export default function DoctorDashboard() {
     const [chat, setChat] = useState([]);
     const [search, setSearch] = useState("");
     const [chatMode, setChatMode] = useState("general"); // "patient" or "general"
+    const [patientsData, setPatientsData] = useState([]); // State to store fetched patient data
+    const [loading, setLoading] = useState(true); // State to handle loading state
+    const [error, setError] = useState(null); // State to handle errors
+
+    // Fetch patients data from the API
+    useEffect(() => {
+        const fetchPatients = async () => {
+            try {
+                const response = await fetch("https://documediq-backend.onrender.com/get-all-patients");
+                if (!response.ok) {
+                    throw new Error("Failed to fetch patients data");
+                }
+                const data = await response.json();
+                setPatientsData(data); // Update state with fetched data
+            } catch (error) {
+                setError(error.message); // Set error message if something goes wrong
+            } finally {
+                setLoading(false); // Set loading to false after fetching
+            }
+        };
+
+        fetchPatients();
+    }, []); // Empty dependency array ensures this runs only once on mount
 
     const filteredPatients = patientsData.filter(patient =>
         patient.name.toLowerCase().includes(search.toLowerCase())
@@ -25,14 +37,14 @@ export default function DoctorDashboard() {
     const sendMessage = () => {
         if (message.trim() !== "") {
             setChat([
-                ...chat, 
-                { 
-                    sender: "Doctor", 
-                    text: message, 
+                ...chat,
+                {
+                    sender: "Doctor",
+                    text: message,
                     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 }
             ]);
-            
+
             // Simulate response for demo purposes
             setTimeout(() => {
                 setChat(prev => [
@@ -44,7 +56,7 @@ export default function DoctorDashboard() {
                     }
                 ]);
             }, 1000);
-            
+
             setMessage("");
         }
     };
@@ -68,6 +80,22 @@ export default function DoctorDashboard() {
         setChat([]); // Clear chat when switching to general mode
     };
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-gray-100">
+                <div className="text-gray-700">Loading patients data...</div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-gray-100">
+                <div className="text-red-600">Error: {error}</div>
+            </div>
+        );
+    }
+
     return (
         <div className="flex h-screen bg-gray-100">
             {/* Sidebar */}
@@ -76,13 +104,13 @@ export default function DoctorDashboard() {
                     <h1 className="text-2xl font-bold text-blue-600">DocuMedIQ</h1>
                     <p className="text-sm text-gray-500">Doctor Dashboard</p>
                 </div>
-                
+
                 <div className="p-4">
-                    <button 
+                    <button
                         onClick={switchToGeneralChat}
                         className={`w-full mb-4 p-3 rounded-lg transition-all flex items-center ${
-                            chatMode === "general" 
-                                ? "bg-blue-500 text-white" 
+                            chatMode === "general"
+                                ? "bg-blue-500 text-white"
                                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         }`}
                     >
@@ -91,7 +119,7 @@ export default function DoctorDashboard() {
                         </svg>
                         General Chat
                     </button>
-                    
+
                     <div className="relative">
                         <input
                             type="text"
@@ -105,34 +133,34 @@ export default function DoctorDashboard() {
                         </svg>
                     </div>
                 </div>
-                
+
                 <div className="flex-1 overflow-y-auto p-4">
                     <h2 className="text-xs uppercase font-semibold text-gray-500 mb-2 tracking-wider">Patients</h2>
                     <ul>
                         {filteredPatients.map((patient) => (
                             <li
-                                key={patient.id}
+                                key={patient._id} // Use _id from MongoDB
                                 className={`p-3 mb-2 cursor-pointer rounded-lg transition-all flex items-center ${
-                                    selectedPatient?.id === patient.id && chatMode === "patient"
+                                    selectedPatient?._id === patient._id && chatMode === "patient"
                                         ? "bg-blue-500 text-white"
                                         : "hover:bg-gray-100"
                                 }`}
                                 onClick={() => selectPatient(patient)}
                             >
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
-                                    selectedPatient?.id === patient.id && chatMode === "patient" 
-                                        ? "bg-blue-400" 
+                                    selectedPatient?._id === patient._id && chatMode === "patient"
+                                        ? "bg-blue-400"
                                         : "bg-blue-100"
                                 }`}>
-                                    <span className={selectedPatient?.id === patient.id && chatMode === "patient" ? "text-white" : "text-blue-500"}>
+                                    <span className={selectedPatient?._id === patient._id && chatMode === "patient" ? "text-white" : "text-blue-500"}>
                                         {patient.name.split(" ").map(name => name[0]).join("")}
                                     </span>
                                 </div>
                                 <div>
-                                    <h3 className={`font-medium ${selectedPatient?.id === patient.id && chatMode === "patient" ? "text-white" : "text-gray-800"}`}>
+                                    <h3 className={`font-medium ${selectedPatient?._id === patient._id && chatMode === "patient" ? "text-white" : "text-gray-800"}`}>
                                         {patient.name}
                                     </h3>
-                                    <p className={`text-xs ${selectedPatient?.id === patient.id && chatMode === "patient" ? "text-blue-100" : "text-gray-500"}`}>
+                                    <p className={`text-xs ${selectedPatient?._id === patient._id && chatMode === "patient" ? "text-blue-100" : "text-gray-500"}`}>
                                         Age: {patient.age}
                                     </p>
                                 </div>
@@ -177,8 +205,8 @@ export default function DoctorDashboard() {
                             </svg>
                             <p>No messages yet</p>
                             <p className="text-sm mt-2">
-                                {chatMode === "patient" 
-                                    ? `Start a conversation with ${selectedPatient.name}` 
+                                {chatMode === "patient"
+                                    ? `Start a conversation with ${selectedPatient.name}`
                                     : "Send a message to start chatting"
                                 }
                             </p>
@@ -188,8 +216,8 @@ export default function DoctorDashboard() {
                             {chat.map((msg, index) => (
                                 <div key={index} className={`flex ${msg.sender === "Doctor" ? "justify-end" : "justify-start"}`}>
                                     <div className={`max-w-xs md:max-w-md lg:max-w-lg rounded-2xl px-4 py-3 ${
-                                        msg.sender === "Doctor" 
-                                            ? "bg-blue-500 text-white rounded-tr-none" 
+                                        msg.sender === "Doctor"
+                                            ? "bg-blue-500 text-white rounded-tr-none"
                                             : "bg-white shadow-sm rounded-tl-none"
                                     }`}>
                                         <div className="flex justify-between items-center mb-1">

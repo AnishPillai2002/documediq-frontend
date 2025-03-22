@@ -1,40 +1,109 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Upload, User, FileText, Calendar, Check } from "lucide-react";
-
-const patientsData = [
-  { id: 1, name: "John Doe", age: 45 },
-  { id: 2, name: "Jane Smith", age: 38 },
-  { id: 3, name: "Michael Johnson", age: 50 },
-  { id: 4, name: "Emily Davis", age: 29 },
-  { id: 5, name: "Robert Brown", age: 60 },
-  { id: 6, name: "Sarah Wilson", age: 34 },
-  { id: 7, name: "David Martinez", age: 42 },
-  { id: 8, name: "Laura Anderson", age: 39 }
-];
 
 export default function AdminDashboard() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [file, setFile] = useState(null);
   const [search, setSearch] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [patientsData, setPatientsData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [fileCategory, setFileCategory] = useState("");
+
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        const response = await fetch("https://documediq-backend.onrender.com/get-all-patients");
+        if (!response.ok) {
+          throw new Error("Failed to fetch patients data");
+        }
+        const data = await response.json();
+        setPatientsData(data);
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPatients();
+  }, []);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
     setUploadSuccess(false);
   };
 
-  const handleUpload = () => {
-    if (file) {
-      // In a real app, you would handle the actual upload here
-      setTimeout(() => {
-        setUploadSuccess(true);
-      }, 1000);
+  const handleUpload = async () => {
+    // Check if all required data is available
+    if (!file || !fileCategory || !selectedPatient) {
+      setError("Please select a file, a category, and a patient before uploading.");
+      return;
+    }
+  
+    // Log the data being sent
+    console.log("File:", file);
+    console.log("Patient ID:", selectedPatient._id);
+    console.log("Category:", fileCategory);
+  
+
+    // Create FormData object
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("patient_id", selectedPatient._id);
+    formData.append("category", fileCategory);
+  
+    // Log FormData for debugging
+    for (let [key, value] of formData.entries()) {
+      console.log(key, value);
+    }
+  
+    try {
+      // Make the API call
+      const response = await fetch("https://documediq-backend.onrender.com/extract-text", {
+        method: "POST",
+        body: formData,
+      });
+  
+      // Check if the response is OK
+      if (!response.ok) {
+        const errorResponse = await response.json(); // Log the error response
+        console.error("API Error Response:", errorResponse);
+        throw new Error(errorResponse.message || "Failed to upload file");
+      }
+  
+      // Handle successful upload
+      const result = await response.json();
+      console.log("Upload successful:", result);
+      setUploadSuccess(true);
+      setError(null); // Clear any previous errors
+    } catch (error) {
+      // Handle errors
+      console.error("Error uploading file:", error);
+      setError(error.message || "Failed to upload file. Please try again.");
     }
   };
 
   const filteredPatients = patientsData.filter(patient => 
     patient.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-50">
+        <div className="text-slate-700">Loading patients data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-50">
+        <div className="text-red-600">Error: {error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-slate-50">
@@ -78,24 +147,24 @@ export default function AdminDashboard() {
               <ul className="space-y-2">
                 {filteredPatients.map((patient) => (
                   <li
-                    key={patient.id}
+                    key={patient._id}
                     className={`p-3 rounded-lg cursor-pointer transition-all flex items-center ${
-                      selectedPatient?.id === patient.id 
+                      selectedPatient?._id === patient._id 
                         ? 'bg-blue-50 border-blue-200 border' 
                         : 'hover:bg-slate-50 border border-transparent'
                     }`}
                     onClick={() => setSelectedPatient(patient)}
                   >
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
-                      selectedPatient?.id === patient.id ? 'bg-blue-500' : 'bg-slate-200'
+                      selectedPatient?._id === patient._id ? 'bg-blue-500' : 'bg-slate-200'
                     }`}>
                       <User className={`w-4 h-4 ${
-                        selectedPatient?.id === patient.id ? 'text-white' : 'text-slate-500'
+                        selectedPatient?._id === patient._id ? 'text-white' : 'text-slate-500'
                       }`} />
                     </div>
                     <div>
                       <h3 className={`font-medium ${
-                        selectedPatient?.id === patient.id ? 'text-blue-700' : 'text-slate-700'
+                        selectedPatient?._id === patient._id ? 'text-blue-700' : 'text-slate-700'
                       }`}>
                         {patient.name}
                       </h3>
@@ -138,6 +207,26 @@ export default function AdminDashboard() {
                   Upload Medical Document
                 </h3>
                 
+                {/* File Category Dropdown */}
+                <div className="mt-4">
+                  <label htmlFor="file-category" className="block text-sm font-medium text-slate-700 mb-1">
+                    File Category
+                  </label>
+                  <select
+                    id="file-category"
+                    className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={fileCategory}
+                    onChange={(e) => setFileCategory(e.target.value)}
+                  >
+                    <option value="">Select a category</option>
+                    <option value="medical_history">Medical History</option>
+                    <option value="lab_reports">Lab Reports</option>
+                    <option value="prescriptions">Prescriptions</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                {/* File Upload Section */}
                 <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:border-blue-300 transition-colors">
                   <input 
                     type="file" 
@@ -156,6 +245,7 @@ export default function AdminDashboard() {
                   </label>
                 </div>
                 
+                {/* Upload Button */}
                 {file && (
                   <div className="mt-4">
                     {uploadSuccess ? (
@@ -172,6 +262,13 @@ export default function AdminDashboard() {
                         Upload Document
                       </button>
                     )}
+                  </div>
+                )}
+
+                {/* Error Message */}
+                {error && (
+                  <div className="mt-4 text-red-600 text-sm">
+                    {error}
                   </div>
                 )}
               </div>
@@ -192,6 +289,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-
-
