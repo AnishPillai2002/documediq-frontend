@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, Upload, User, FileText, Calendar, Check } from "lucide-react";
+import axios from "axios";
 
 export default function AdminDashboard() {
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -37,54 +38,39 @@ export default function AdminDashboard() {
 
   const handleUpload = async () => {
     // Check if all required data is available
-    if (!file || !fileCategory || !selectedPatient) {
-      setError("Please select a file, a category, and a patient before uploading.");
+    if (!file || !selectedPatient || !fileCategory) {
+      setError("Please select a file, a patient, and a category before uploading.");
       return;
     }
-  
-    // Log the data being sent
-    console.log("File:", file);
-    console.log("Patient ID:", selectedPatient._id);
-    console.log("Category:", fileCategory);
-  
 
     // Create FormData object
     const formData = new FormData();
-    formData.append("file", file);
-    formData.append("patient_id", selectedPatient._id);
-    formData.append("category", fileCategory);
-  
-    // Log FormData for debugging
-    for (let [key, value] of formData.entries()) {
-      console.log(key, value);
-    }
-  
+    formData.append("file", file); // Append the file
+    formData.append("patient_id", selectedPatient); // Append patient ID
+    formData.append("file_category", fileCategory); // Append file category
+
     try {
-      // Make the API call
-      const response = await fetch("https://documediq-backend.onrender.com/extract-text", {
-        method: "POST",
-        body: formData,
-      });
-  
-      // Check if the response is OK
-      if (!response.ok) {
-        const errorResponse = await response.json(); // Log the error response
-        console.error("API Error Response:", errorResponse);
-        throw new Error(errorResponse.message || "Failed to upload file");
-      }
-  
+      // Make the API call using axios
+      const response = await axios.post(
+        "http://localhost:5000/extract-text",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data", // Axios will handle the boundary
+          },
+        }
+      );
+
       // Handle successful upload
-      const result = await response.json();
-      console.log("Upload successful:", result);
+      console.log("Upload successful:", response.data);
       setUploadSuccess(true);
-      setError(null); // Clear any previous errors
+      setError(""); // Clear any previous errors
     } catch (error) {
       // Handle errors
       console.error("Error uploading file:", error);
-      setError(error.message || "Failed to upload file. Please try again.");
+      setError(error.response?.data?.error || "Failed to upload file. Please try again.");
     }
   };
-
   const filteredPatients = patientsData.filter(patient => 
     patient.name.toLowerCase().includes(search.toLowerCase())
   );
