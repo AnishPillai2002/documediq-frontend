@@ -1,40 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# DocuMedIQ
 
-## Getting Started
+DocuMedIQ is an advanced medical data management web application that converts unstructured medical data into structured data, allowing doctors and hospital administrators to derive valuable insights efficiently.
 
-First, run the development server:
+## Features
+- **Real-Time Insights:** Doctors can query the patient database and retrieve real-time insights using AI.
+- **Unstructured to Structured Data Conversion:** Hospital admins can upload patient records such as prescriptions, lab reports, and scans, which are automatically structured and stored in a vector database and MongoDB.
+- **Efficient Storage:** Using MongoDB for metadata storage and a vector database for fast retrieval and similarity search enhances system efficiency.
+- **AI-Powered Querying:** Retrieval-Augmented Generation (RAG) with OpenAI enables intelligent querying of patient records.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Technologies Used
+- **Frontend:** Next.js, Tailwind CSS
+- **Backend:** OpenAI, RAG-based AI processing
+- **Database:** MongoDB (structured data storage), Vector Database (efficient similarity search)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Installation Guide
+Follow these steps to clone and set up the project:
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+### Prerequisites
+Make sure you have the following installed:
+- **Node.js** (Latest LTS version recommended)
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
+### Steps to Clone and Install
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+1. **Clone the Repository:**
+   ```sh
+   git clone https://github.com/your-username/DocuMedIQ.git
+   cd DocuMedIQ
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Install Dependencies:**
+   ```sh
+   npm install
+   ```
 
-## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+3. **Run the Development Server:**
+   ```sh
+   npm run dev
+   ```
+   The application will be available at `http://localhost:3000/`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+## Screenshots
+### Home Page
+![Home Page](screenshots/homepage1.jpg)
+![Home Page](screenshots/homepage2.jpg)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Doctor Interface
+![Patient Query](screenshots/doctor.jpg)
 
-## Deploy on Vercel
+### Admin Interface
+![Admin Dashboard](screenshots/admin.jpg)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Contributing
+Feel free to open issues or submit pull requests to enhance DocuMedIQ.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+## License
+This project is licensed under the MIT License.

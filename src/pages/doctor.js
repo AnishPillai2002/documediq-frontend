@@ -9,12 +9,13 @@ export default function DoctorDashboard() {
     const [patientsData, setPatientsData] = useState([]); // State to store fetched patient data
     const [loading, setLoading] = useState(true); // State to handle loading state
     const [error, setError] = useState(null); // State to handle errors
+    const [isResponseLoading, setIsResponseLoading] = useState(false); // State to track when waiting for API response
 
     // Fetch patients data from the API
     useEffect(() => {
         const fetchPatients = async () => {
             try {
-                const response = await fetch("https://documediq-backend.onrender.com/get-all-patients");
+                const response = await fetch("http://127.0.0.1:5000/get-all-patients");
                 if (!response.ok) {
                     throw new Error("Failed to fetch patients data");
                 }
@@ -34,30 +35,73 @@ export default function DoctorDashboard() {
         patient.name.toLowerCase().includes(search.toLowerCase())
     );
 
-    const sendMessage = () => {
+    const sendMessage = async () => {
         if (message.trim() !== "") {
-            setChat([
-                ...chat,
-                {
-                    sender: "Doctor",
-                    text: message,
-                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            // Add doctor's message to chat
+            const doctorMessage = {
+                sender: "Doctor",
+                text: message,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+            
+            setChat(prevChat => [...prevChat, doctorMessage]);
+            setIsResponseLoading(true);
+            
+            try {
+                // Prepare query data
+                const queryData = {
+                    query: message,
+                    patient_id: selectedPatient?._id || null,
+                    mode: chatMode
+                };
+
+                console.log("Query data:", queryData);
+                
+                // Send the query to the API
+                const response = await fetch("http://127.0.0.1:8000/search", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(queryData)
+                });
+                
+                console.log("API response:", response);
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
                 }
-            ]);
+                
+                // Parse the response
+                const responseData = await response.json();
 
-            // Simulate response for demo purposes
-            setTimeout(() => {
-                setChat(prev => [
-                    ...prev,
-                    {
-                        sender: chatMode === "patient" ? selectedPatient.name : "System",
-                        text: `This is a simulated response to: "${message}"`,
-                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    }
-                ]);
-            }, 1000);
-
-            setMessage("");
+                console.log("Response data:", responseData);
+                
+                // Add the AI response to chat
+                const aiMessage = {
+                    sender: chatMode === "patient" ? selectedPatient?.name : "System",
+                    text: responseData || "Sorry, I couldn't find an answer to that query.",
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                
+                setChat(prevChat => [...prevChat, aiMessage]);
+                
+            } catch (error) {
+                console.error("Error sending query:", error);
+                
+                // Add error message to chat
+                const errorMessage = {
+                    sender: "System",
+                    text: `Error: ${error.message || "Failed to get a response. Please try again."}`,
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                
+                setChat(prevChat => [...prevChat, errorMessage]);
+                
+            } finally {
+                setIsResponseLoading(false);
+                setMessage(""); // Clear the input field
+            }
         }
     };
 
@@ -205,7 +249,7 @@ export default function DoctorDashboard() {
                             </svg>
                             <p>No messages yet</p>
                             <p className="text-sm mt-2">
-                                {chatMode === "patient"
+                                {chatMode === "patient" && selectedPatient
                                     ? `Start a conversation with ${selectedPatient.name}`
                                     : "Send a message to start chatting"
                                 }
@@ -234,6 +278,19 @@ export default function DoctorDashboard() {
                                     </div>
                                 </div>
                             ))}
+                            
+                            {/* Loading indicator */}
+                            {isResponseLoading && (
+                                <div className="flex justify-start">
+                                    <div className="bg-white shadow-sm rounded-2xl rounded-tl-none px-4 py-3">
+                                        <div className="flex space-x-2">
+                                            <div className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                                            <div className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                                            <div className="w-2 h-2 rounded-full bg-gray-300 animate-bounce" style={{ animationDelay: "600ms" }}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -248,11 +305,16 @@ export default function DoctorDashboard() {
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             onKeyDown={handleKeyDown}
+                            disabled={isResponseLoading}
                         />
                         <button
-                            className="p-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200 ml-2 flex items-center"
+                            className={`p-3 text-white rounded-lg transition duration-200 ml-2 flex items-center ${
+                                isResponseLoading || !message.trim() 
+                                    ? "bg-blue-300 cursor-not-allowed" 
+                                    : "bg-blue-500 hover:bg-blue-600"
+                            }`}
                             onClick={sendMessage}
-                            disabled={!message.trim()}
+                            disabled={isResponseLoading || !message.trim()}
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />

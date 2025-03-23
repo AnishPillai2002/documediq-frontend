@@ -15,7 +15,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const response = await fetch("https://documediq-backend.onrender.com/get-all-patients");
+        const response = await fetch("http://127.0.0.1:5000/get-all-patients");
         if (!response.ok) {
           throw new Error("Failed to fetch patients data");
         }
@@ -34,41 +34,49 @@ export default function AdminDashboard() {
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
     setUploadSuccess(false);
+
+    console.log("Selected file:", e.target.files[0]);
+    console.log("File category:", fileCategory);
+    console.log("Selected patient:", selectedPatient);
   };
 
   const handleUpload = async () => {
-    // Check if all required data is available
+    // Uncomment the validation check
     if (!file || !selectedPatient || !fileCategory) {
       setError("Please select a file, a patient, and a category before uploading.");
       return;
     }
-
+  
     // Create FormData object
     const formData = new FormData();
-    formData.append("file", file); // Append the file
-    formData.append("patient_id", selectedPatient); // Append patient ID
-    formData.append("file_category", fileCategory); // Append file category
-
+    formData.append("file", file);
+    // Use patient ID, not the full patient object
+    formData.append("patient_id", selectedPatient._id); 
+    formData.append("file_category", fileCategory);
+  
     try {
-      // Make the API call using axios
-      const response = await axios.post(
-        "http://localhost:5000/extract-text",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data", // Axios will handle the boundary
-          },
-        }
-      );
-
+      // Use fetch with proper error handling
+      const response = await fetch("http://localhost:5000/extract-text", {
+        method: "POST",
+        body: formData,
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to upload file");
+      }
+  
+      // Get the response data
+      const responseData = await response.json();
+      
       // Handle successful upload
-      console.log("Upload successful:", response.data);
+      console.log("Upload successful:", responseData);
       setUploadSuccess(true);
       setError(""); // Clear any previous errors
     } catch (error) {
       // Handle errors
       console.error("Error uploading file:", error);
-      setError(error.response?.data?.error || "Failed to upload file. Please try again.");
+      setError(error.message || "Failed to upload file. Please try again.");
     }
   };
   const filteredPatients = patientsData.filter(patient => 
